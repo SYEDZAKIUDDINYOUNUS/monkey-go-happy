@@ -1,93 +1,152 @@
+//please note the following things:
 
-
-var ground;
-var monkey , monkey_running
-var banana ,bananaImage,bananaGroup, obstacle, obstacleImage
-var foodGroup, obstacleGroup
+// 1. The bananas are spawning in random positions within the 80 frames.
+// 2. When you collide with the stones in this game the game is over.
+// Have fun!
+var monkey,monkey_running,moving;
+var ground,groundImage;
+var banana,bananaImage,bananaGroup;
+var obstacle,obstacleImage,obstacleGroup, invisibleGround;
+var score = 0;
 var survivalTime = 0;
- 
+var PLAY = 1;
+var END = 0;
+var gamestate = PLAY;
+var gameover = "nice try";
+
 function preload(){
+monkey_running = loadAnimation("monkey_0.png","monkey_1.png","monkey_2.png","monkey_3.png","monkey_4.png","monkey_5.png","monkey_6.png","monkey_7.png","monkey_8.png");
+bananaImage = loadImage("banana.png");  
+obstacleImage = loadImage("obstacle.png");  
+ groundImage = loadImage("ground2.png");
   
-  monkey_running = loadAnimation("sprite_0.png","sprite_1.png","sprite_2.png","sprite_3.png","sprite_4.png","sprite_5.png","sprite_6.png","sprite_7.png","sprite_8.png")
-  
-  bananaImage = loadImage("banana.png");
-  obstacleImage = loadImage("obstacle.png");
  
 }
-
 
 
 function setup() {
-  createCanvas(600,400);
- 
-  monkey = createSprite(80,315,20,20);
-  monkey.addAnimation("moving",monkey_running)
-  monkey.scale = 0.1;
+  createCanvas(600,600);
+//creating ground
+  ground=createSprite(400,350,900,10);
+  ground.velocityX=-5;
+  ground.x=ground.width/2;
+   ground.addImage("ground",groundImage);
+  console.log(ground.x);
   
-  ground = createSprite(400,350,1500,10)
-  ground.velocityX = -4;
-  ground.X=ground.width/2;
-  console.log(ground.x)
-   foodGroup = createGroup();
-   obstacleGroup = createGroup();
+ //creating monkey
+  monkey = createSprite(80,315,20,20);
+  monkey.addAnimation("moving",monkey_running);
+  monkey.scale=0.1;
+  
+  //creating banana & obstacle group
+  bananaGroup = createGroup();
+  obstacleGroup = createGroup();
+  invisibleGround = createSprite(400,360,900,10);
+  invisibleGround.visible = false;
+
+ 
+  
+  
 }
+
+
+function draw() {
+  background("white");
+
+  //when we press space the monkey will jump upwards.
+  if(keyDown("space")&& monkey.y >= 200)
+     {
+     monkey.velocityY=-10;
+     }
    
   
-function draw() {
-background("green");
-  
-  if(keyDown("SPACE") && monkey.y > 300) {
-    monkey.velocityY =-15;
+  //to help pull the monkey down by gravity so it doesn't stay up.
+  monkey.velocityY = monkey.velocityY+0.8;
+  //resetting the ground to half it's width.
+  if (ground.x < 0)
+  {
+    ground.x = ground.width/2;
   }
-  monkey.velocityY = monkey.velocityY +0.8;
-    if(ground.x<0  ){
-      ground.x = ground.width/2
-    }
-    if( monkey.isTouching(obstacleGroup)){
-       reset();
+// we are calling our functions up here.
+  food();
+  spawnRocks();
+
+  if(gamestate===PLAY){
+    gameover.visible=false;
+
+  if(bananaGroup.isTouching(monkey)){
+      
+    bananaGroup.destroyEach();
+    survivalTime = survivalTime+2;
+  }
+    if(survivalTime === +4){
+       survivalTime = survivalTime +4;
        }
-    monkey.collide(ground);
-    food();
-    obstacles();
-  textSize(20);
-  fill("black")
-  survivalTime = Math.ceil(frameCount/frameRate())
-  text("survivalTime :"+survivalTime,200,20);
-  drawSprites()
-}function food(){
- if (frameCount%80 === 0) {
-    var banana = createSprite(300,Math.round(random(120,200)),40,10);
-    banana.addImage(bananaImage);
-    banana.scale = 0.1;
-    banana.velocityX = -3;
+}
+    if (obstacleGroup.isTouching(monkey)) {
+     gamestate=END
+     obstacleGroup.destroyEach();
+  
+  } if(gamestate===END){
     
-     //assign lifetime to the variable
-    banana.lifetime = 200;
-    
-    //adjust the depth
-    banana.depth = monkey.depth;
-    monkey.depth = monkey.depth + 1;
-    
+    monkey.destroy();
+    ground.destroy();
+    bananaGroup.destroyEach();
+    obstacleGroup.destroyEach();
+    gameover.visible=true;
+    stroke("black");
+    textSize(20);
+    fill("black");
+    text("Gameover: " + gameover,180,200);
 
     
-    foodGroup.add(banana);
-    }
+  }
+  //this is to help display the survival time text on the canvas. 
+  stroke("white");
+  textSize(20);
+  fill("white");
+  text("Score: "+ score,500,50);
+  
+  stroke("black");
+  textSize(20);
+  fill("black");
+  text("Survival Time: " + survivalTime,200,50);
+  
+ 
+  
+         
+  
+// this is used so the monkey can collide with the ground
+  monkey.collide( invisibleGround);
+  drawSprites();
+   
 }
-function obstacles(){
-   if (frameCount % 250 === 0){
-   var obstacle = createSprite(400, 325, 20, 20);
-   obstacle.addImage(obstacleImage);
-   obstacle.velocityX = -(6 + survivalTime/100);
-   
-    //assign scale and lifetime to the obstacle           
-    obstacle.scale = 0.1;
-    obstacle.lifetime = 300;
-   
-   //add each obstacle to the group
+
+     
+function food(){
+  //this is to make sure the banana appears for every 80 frames.
+   if(World.frameCount%80==0){
+ 
+  banana = createSprite(300,130,20,20);
+  banana.addImage(bananaImage); 
+  banana.scale=0.1;
+  banana.y = Math.round(random(120,200));
+  banana.velocityX=-5;
+  banana.lifetime=150;
+
+  bananaGroup.add(banana);  
+      
+  }
+}
+function spawnRocks(){
+  // this is to make sure the obstacle appears after every 300 frames.
+  if(World.frameCount%60==0){
+    obstacle = createSprite(400,330,10,40);
+    obstacle.addImage(obstacleImage);
+    obstacle.scale=0.1;
+    obstacle.velocityX=-5;
+    obstacle.lifetime=150;
     obstacleGroup.add(obstacle);
- }
-}
-function reset(){
-  bananaGroup.destroyEach();
-  obstacleGroup.destroyEach();
+
+  }
 }
